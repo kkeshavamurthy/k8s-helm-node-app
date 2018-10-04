@@ -1,0 +1,7 @@
+dependencies:
+  - name: mariadb
+    version: 5.0.7
+    repository: "@k8s-helm-charts"
+    condition: mariadb.enabled
+    tags:
+      - node-app-database

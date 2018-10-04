@@ -1,0 +1,80 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ include "node-helm-app.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "node-helm-app.name" . }}
+    helm.sh/chart: {{ include "node-helm-app.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "node-helm-app.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "node-helm-app.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: MYSQL_HOST
+            {{- if .Values.mariadb.enabled}}
+              value: {{ .Release.Name }}-mariadb
+            {{- else }}
+              value: unknown
+            {{- end }}
+            - name: MYSQL_USER
+            {{- if .Values.mariadb.enabled }}
+              value: {{ .Values.mariadb.db.user | quote }}
+            {{- else }}
+              value: unknown
+            {{- end }}
+            - name: MYSQL_DATABASE
+            {{- if .Values.mariadb.enabled }}
+              value: {{ .Values.mariadb.db.name | quote }}
+            {{- else }}
+              value: unknown
+            {{- end }}
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                {{- if .Values.mariadb.enabled }}
+                  name: {{ .Release.Name }}-mariadb
+                  key: mariadb-password
+                {{- else }}
+                  name: unknown
+                  key: db-password
+                {{- end }}
+          ports:
+            - name: {{ .Values.service.targetPort }}
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.targetPort }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.targetPort }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
