@@ -28,4 +28,8 @@ To make sure everything is correct, you can dry-run the chart before deploying i
 ```
 helm install node-helm-app/ --dry-run --debug
 ```
-
+* Upgrade
+To upgrade the web container to version v2
+```
+helm  upgrade --set image.tag=v2,mariadb.db.password=$DB_APP_PASS RELEASE node-helm-app/
+```
